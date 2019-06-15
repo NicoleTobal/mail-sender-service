@@ -2,7 +2,7 @@
 
 ### Description
 
-A basic service to send emails using Nodejs Nodemailer and the Gmail API.
+A basic service to send emails using Nodejs Nodemailer and the Gmail API. Also subscribe service was added, which sends and email to the subscribed person and adds it as a contact in the provided email's list of contacts.
 
 ### Gmail API tokens
 
@@ -17,6 +17,7 @@ https://medium.com/@RistaSB/use-expressjs-to-send-mails-with-gmail-oauth-2-0-and
 - CLIENT_SECRET
 - REFRESH_TOKEN
 - EMAIL: the email that will send and receive the mail
+- REFRESH_TOKEN_GOOGLE_PEOPLE: the refresh token for google people API (authorize the API "https://www.google.com/m8/feeds/" in https://developers.google.com/oauthplayground/ and give permission to People API in https://console.developers.google.com)
 
 ### Endpoint
 
@@ -39,8 +40,8 @@ First all environment variables need to be exported, then configure the values i
 
 Start service with pm2:
 
-> URL="FakeUrl" EMAIL="FakeEmail" CLIENT_ID="FakeClientId" CLIENT_SECRET="FakeClientSecret" REFRESH_TOKEN="FakeRefreshToken" pm2 start index.js
+> URL="FakeUrl" EMAIL="FakeEmail" CLIENT_ID="FakeClientId" CLIENT_SECRET="FakeClientSecret" REFRESH_TOKEN="FakeRefreshToken" REFRESH_TOKEN_GOOGLE_PEOPLE="FakePeopleToken" pm2 start index.js
 
 Restart the service updating the env variables:
 
-> URL="FakeUrl" EMAIL="FakeEmail" CLIENT_ID="FakeClientId" CLIENT_SECRET="FakeClientSecret" REFRESH_TOKEN="FakeRefreshToken" pm2 restart index --update-env
+> URL="FakeUrl" EMAIL="FakeEmail" CLIENT_ID="FakeClientId" CLIENT_SECRET="FakeClientSecret" REFRESH_TOKEN="FakeRefreshToken" REFRESH_TOKEN_GOOGLE_PEOPLE="FakePeopleToken" pm2 restart index --update-env

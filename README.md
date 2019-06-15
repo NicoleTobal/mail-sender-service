@@ -26,9 +26,12 @@ https://medium.com/@RistaSB/use-expressjs-to-send-mails-with-gmail-oauth-2-0-and
     - subject: type String
     - message: type String
 
+- **POST /api/subscribe**, receives:
+    - email: type String
+
 ### Run local
 
-First all environment variables need to be exported and then run:
+First all environment variables need to be exported, then configure the values in the config.json and then run:
 
 > npm start
 

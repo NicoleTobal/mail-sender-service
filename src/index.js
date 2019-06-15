@@ -6,6 +6,8 @@ var cors = require('cors');
 const app = express();
 var bodyParser = require('body-parser');
 
+const config = require("./config.json");
+
 const whitelist = ["http://" + process.env.URL, "http://www." + process.env.URL];
 
 app.use(express.static(__dirname));
@@ -73,6 +75,17 @@ const sendEmail = (from, subject, text, cb) => {
 app.post('/api/sendMail', (request, reply) => {
   const { name, email, subject, message } = request.body;
   const text = name + " (" + email + ")" + " sent the following message: \"" + message + "\"";
+  sendEmail(email, subject, text, (error) => {
+    if (error) return reply.status(500).send(error.message);
+    reply.status(200).send("Email sent successfully!");
+  });
+})
+
+app.post('/api/subscribe', (request, reply) => {
+  const { email } = request.body;
+  const text = config.subscribeMessage;
+  const subject = config.subscribeSubject;
+  // TODO: make subscribe function
   sendEmail(email, subject, text, (error) => {
     if (error) return reply.status(500).send(error.message);
     reply.status(200).send("Email sent successfully!");

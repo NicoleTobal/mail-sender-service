@@ -24,42 +24,49 @@ app.use(cors({
   }
 }));
 
-let smtpTransport;
+const getOauthClient = (refreshToken) => {
+  const oauth2Client = new OAuth2(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    "https://developers.google.com/oauthplayground"
+  );
+  oauth2Client.credentials = {
+    refresh_token: refreshToken
+  };
+  return oauth2Client;
+}
 
-const refreshAuth = () => new Promise((resolve, reject) => {
+const refreshAuth = (refreshToken) => new Promise((resolve, reject) => {
   try {
-    const oauth2Client = new OAuth2(
-      process.env.CLIENT_ID,
-      process.env.CLIENT_SECRET,
-      "https://developers.google.com/oauthplayground"
-    );
-    oauth2Client.setCredentials({
-      refresh_token: process.env.REFRESH_TOKEN
-    });
+    const oauth2Client = getOauthClient(refreshToken);
     oauth2Client.getAccessToken((err, result) => {
       if (err) return reject(err);
       const accessToken = result.token;
-      smtpTransport = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-            type: "OAuth2",
-            user: process.env.EMAIL, 
-            clientId: process.env.CLIENT_ID,
-            clientSecret: process.env.CLIENT_SECRET,
-            refreshToken: process.env.REFRESH_TOKEN,
-            accessToken
-        }
-      });
-      resolve();
+      resolve(accessToken);
     });
   } catch (error) {
     reject(error);
   }
 });
 
+const getSmptTransport = (accessToken) => {
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        type: "OAuth2",
+        user: process.env.EMAIL, 
+        clientId: process.env.CLIENT_ID,
+        clientSecret: process.env.CLIENT_SECRET,
+        refreshToken: process.env.REFRESH_TOKEN,
+        accessToken
+    }
+  });
+}
+
 const sendEmail = (from, subject, text, cb) => {
-  refreshAuth().then(() => {
+  refreshAuth(process.env.REFRESH_TOKEN).then(accessToken => {
     const mailOptions = { from, to: process.env.EMAIL, subject, text };
+    const smtpTransport = getSmptTransport(accessToken);
     smtpTransport.sendMail(mailOptions, function(error, info){
       if (error) {
         cb(error);
@@ -67,6 +74,25 @@ const sendEmail = (from, subject, text, cb) => {
         console.log('Email sent: ' + info.response);
         cb();
       }
+    });
+  }).catch(error => cb(error));
+};
+
+const subscribe = (value, cb) => {
+  refreshAuth(process.env.REFRESH_TOKEN_GOOGLE_PEOPLE).then(accessToken => {
+    const oauth2Client = getOauthClient(process.env.REFRESH_TOKEN_GOOGLE_PEOPLE);
+    oauth2Client.credentials = {
+      access_token: accessToken
+    };
+    google.people('v1').people.createContact({
+      requestBody: {
+        emailAddresses: [{value}]
+      },
+      auth: oauth2Client
+    }, function (err, response) {
+      if (err) cb(err);
+      console.log("User subscribed: ", response);
+      cb();
     });
   }).catch(error => cb(error));
 };
@@ -85,10 +111,12 @@ app.post('/api/subscribe', (request, reply) => {
   const { email } = request.body;
   const text = config.subscribeMessage;
   const subject = config.subscribeSubject;
-  // TODO: make subscribe function
-  sendEmail(email, subject, text, (error) => {
+  subscribe(email).then((error) => {
     if (error) return reply.status(500).send(error.message);
-    reply.status(200).send("Email sent successfully!");
+    sendEmail(email, subject, text, (error) => {
+      if (error) return reply.status(500).send(error.message);
+      reply.status(200).send("User successfully subscribed!");
+    });
   });
 })
 

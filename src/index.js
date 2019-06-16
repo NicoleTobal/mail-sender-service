@@ -8,7 +8,7 @@ var bodyParser = require('body-parser');
 
 const config = require("./config.json");
 
-const whitelist = ["http://" + process.env.URL, "http://www." + process.env.URL];
+const whitelist = ["https://" + process.env.URL, "https://www." + process.env.URL];
 
 app.use(express.static(__dirname));
 
@@ -39,9 +39,9 @@ const getOauthClient = (refreshToken) => {
 const refreshAuth = (refreshToken) => new Promise((resolve, reject) => {
   try {
     const oauth2Client = getOauthClient(refreshToken);
-    oauth2Client.getAccessToken((err, result) => {
+    oauth2Client.getAccessToken((err, token) => {
       if (err) return reject(err);
-      const accessToken = result.token;
+      const accessToken = token;
       resolve(accessToken);
     });
   } catch (error) {
@@ -63,9 +63,9 @@ const getSmptTransport = (accessToken) => {
   });
 }
 
-const sendEmail = (from, subject, text, cb) => {
+const sendEmail = (from, to, subject, text, cb) => {
   refreshAuth(process.env.REFRESH_TOKEN).then(accessToken => {
-    const mailOptions = { from, to: process.env.EMAIL, subject, text };
+    const mailOptions = { from, to, subject, text };
     const smtpTransport = getSmptTransport(accessToken);
     smtpTransport.sendMail(mailOptions, function(error, info){
       if (error) {
@@ -101,7 +101,7 @@ const subscribe = (value, cb) => {
 app.post('/api/sendMail', (request, reply) => {
   const { name, email, subject, message } = request.body;
   const text = name + " (" + email + ")" + " sent the following message: \"" + message + "\"";
-  sendEmail(email, subject, text, (error) => {
+  sendEmail(email, process.env.EMAIL, subject, text, (error) => {
     if (error) return reply.status(500).send(error.message);
     reply.status(200).send("Email sent successfully!");
   });
@@ -111,9 +111,9 @@ app.post('/api/subscribe', (request, reply) => {
   const { email } = request.body;
   const text = config.subscribeMessage;
   const subject = config.subscribeSubject;
-  subscribe(email).then((error) => {
+  subscribe(email, (error) => {
     if (error) return reply.status(500).send(error.message);
-    sendEmail(email, subject, text, (error) => {
+    sendEmail(process.env.EMAIL, email, subject, text, (error) => {
       if (error) return reply.status(500).send(error.message);
       reply.status(200).send("User successfully subscribed!");
     });
